@@ -31,7 +31,7 @@ class GeneralizedRCNN(nn.Module):
         self.roi_heads = build_roi_heads(cfg)
         self.return_feats = cfg.MODEL.ROI_BOX_HEAD.RETURN_FC_FEATS
 
-    def forward(self, images, targets=None):
+    def forward(self, images, targets=None, input_boxes=None):
         """
         Arguments:
             images (list[Tensor] or ImageList): images to be processed
@@ -49,6 +49,9 @@ class GeneralizedRCNN(nn.Module):
         images = to_image_list(images)
         features = self.backbone(images.tensors)
         proposals, proposal_losses = self.rpn(images, features, targets)
+        if input_boxes is not None:
+            assert not self.training
+            load_boxes_for_feature_extraction(proposals, input_boxes)
         if self.roi_heads:
             x, result, detector_losses = self.roi_heads(features, proposals, targets)
         else:
@@ -67,3 +70,17 @@ class GeneralizedRCNN(nn.Module):
             return (x, result)
 
         return result
+
+
+def load_boxes_for_feature_extraction(proposals, input_boxes):
+    assert len(proposals) == 1, \
+        'only supporting single image feature extraction for now'
+    bbox_num = input_boxes.shape[0]
+    bbox = torch.zeros(
+        (bbox_num, 4),
+        dtype=proposals[0].bbox.dtype,
+        device=proposals[0].bbox.device
+    )
+    bbox[...] = input_boxes
+    proposals[0].bbox = bbox
+    proposals[0].extra_fields.pop('objectness')
