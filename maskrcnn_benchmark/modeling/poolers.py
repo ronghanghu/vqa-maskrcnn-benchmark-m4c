@@ -100,11 +100,12 @@ class Pooler(nn.Module):
 
         num_rois = len(rois)
         num_channels = x[0].shape[1]
-        output_size = self.output_size[0]
+        output_size_h = self.output_size[0]
+        output_size_w = self.output_size[1] if len(self.output_size) > 1 else output_size_h
 
         dtype, device = x[0].dtype, x[0].device
         result = torch.zeros(
-            (num_rois, num_channels, output_size, output_size), dtype=dtype, device=device
+            (num_rois, num_channels, output_size_h, output_size_w), dtype=dtype, device=device
         )
         for level, (per_level_feature, pooler) in enumerate(zip(x, self.poolers)):
             idx_in_level = torch.nonzero(levels == level).squeeze(1)

@@ -15,6 +15,7 @@ class ROIBoxHead(torch.nn.Module):
 
     def __init__(self, cfg):
         super(ROIBoxHead, self).__init__()
+        self.return_feature_only = cfg.MODEL.ROI_BOX_HEAD.RETURN_FEATURE_ONLY
         self.feature_extractor = make_roi_box_feature_extractor(cfg)
         self.predictor = make_roi_box_predictor(cfg)
         self.post_processor = make_roi_box_post_processor(cfg)
@@ -45,6 +46,8 @@ class ROIBoxHead(torch.nn.Module):
         # extract features that will be fed to the final classifier. The
         # feature_extractor generally corresponds to the pooler + heads
         x = self.feature_extractor(features, proposals)
+        if self.return_feature_only:
+            return x, {}, {}
         # final classifier that converts the features into predictions
         if self.return_feats:
             if self.has_attributes:

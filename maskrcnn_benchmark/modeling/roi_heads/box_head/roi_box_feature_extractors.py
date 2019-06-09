@@ -82,6 +82,41 @@ class FPN2MLPFeatureExtractor(nn.Module):
         return fc7
 
 
+@registry.ROI_BOX_FEATURE_EXTRACTORS.register("FPN2MLPFeatureExtractorPool5HighResolution")
+class FPN2MLPFeatureExtractorPool5HighResolution(nn.Module):
+    """
+    Heads for FPN for classification
+    """
+
+    def __init__(self, cfg):
+        super(FPN2MLPFeatureExtractorPool5HighResolution, self).__init__()
+
+        resolution_h = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION_H
+        resolution_w = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION_W
+        print(
+            'FPN2MLPFeatureExtractorPool5HighResolution spatial resolution',
+            'resolution_h =', resolution_h,
+            'resolution_w =', resolution_w
+        )
+        scales = cfg.MODEL.ROI_BOX_HEAD.POOLER_SCALES
+        sampling_ratio = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+
+        self.return_feats = cfg.MODEL.ROI_BOX_HEAD.RETURN_FC_FEATS
+
+        pooler = Pooler(
+            output_size=(resolution_h, resolution_w), scales=scales, sampling_ratio=sampling_ratio
+        )
+        self.pooler = pooler
+
+    def forward(self, x, proposals):
+        pooled = self.pooler(x, proposals)
+
+        if self.return_feats:
+            return {"proposals": proposals, "pooled": pooled}
+
+        raise NotImplementedError()
+
+
 def make_roi_box_feature_extractor(cfg):
     func = registry.ROI_BOX_FEATURE_EXTRACTORS[cfg.MODEL.ROI_BOX_HEAD.FEATURE_EXTRACTOR]
     return func(cfg)
